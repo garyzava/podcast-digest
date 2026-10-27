@@ -1,7 +1,3 @@
-# /// script
-# requires-python = ">=3.11"
-# dependencies = ["yt-dlp>=2026.1.1", "pyyaml>=6"]
-# ///
 """podcast: transcripts and summaries for podcast episodes, usable by humans and agents.
 
 Subcommands (all print JSON to stdout unless noted; logs go to stderr):
@@ -17,6 +13,9 @@ free text matched against episode titles ("chamath", "mercury into gold").
 Summary engines: --engine claude uses the `claude` CLI (Claude Code login, no key needed);
 --engine openai uses OPENAI_API_KEY (+ OPENAI_MODEL or --model); --print-prompt emits the prompt for any model.
 Default engine: claude if the CLI is installed, else openai if OPENAI_API_KEY is set.
+
+Output goes to ./output/<show>/ (or $PODCAST_DIGEST_OUT/<show>/, or --out DIR).
+Shows: the built-in podcasts.yaml plus ~/.config/podcast-digest/podcasts.yaml, same format, user entries win.
 
 Exit codes: 0 ok, 1 error, 2 no captions available, 3 ambiguous episode text (candidates in JSON).
 """
@@ -40,10 +39,10 @@ from pathlib import Path
 import yaml
 import yt_dlp
 
-TOOL_DIR = Path(__file__).resolve().parent          # <project>/tools/podcast
-REGISTRY = TOOL_DIR / "podcasts.yaml"
-TEMPLATE = TOOL_DIR / "SUMMARY_TEMPLATE.md"
-PROJECT_ROOT = TOOL_DIR.parent.parent
+PKG_DIR = Path(__file__).resolve().parent           # the installed package: ships the registry and the template
+REGISTRY = PKG_DIR / "podcasts.yaml"
+TEMPLATE = PKG_DIR / "SUMMARY_TEMPLATE.md"
+USER_REGISTRY = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "podcast-digest" / "podcasts.yaml"
 TRANSCRIPTS_SUBDIR = "transcripts"                  # summaries sit at the top of output/<show>/, the rest here
 NS = {"itunes": "http://www.itunes.com/dtds/podcast-1.0.dtd"}
 PARAGRAPH_WORDS = 70  # target words per paragraph in the cleaned transcript
@@ -326,7 +325,7 @@ def load_show(registry: dict, slug: str | None) -> dict | None:
         return None
     show = registry.get(slug)
     if not show:
-        die(f"unknown show '{slug}'; known: {', '.join(registry) or 'none'} (edit {REGISTRY})")
+        die(f"unknown show '{slug}'; known: {', '.join(registry) or 'none'} (add it to {USER_REGISTRY})")
     return show
 
 
@@ -389,7 +388,7 @@ def do_fetch(args, registry) -> dict:
     date = (item or {}).get("date") or ytdate(info) or datetime.now().date().isoformat()
     num = episode_number(title, pattern) or episode_number((info or {}).get("title", ""), pattern)
     stem = f"{slug}-ep{num}-{date}" if num is not None else f"{slug}-{date}-{slugify(title)}"
-    out_dir = Path(args.out) if args.out else PROJECT_ROOT / "output" / slug
+    out_dir = Path(args.out) if args.out else Path(os.environ.get("PODCAST_DIGEST_OUT", "output")) / slug
     (out_dir / TRANSCRIPTS_SUBDIR).mkdir(parents=True, exist_ok=True)
     files = {"episode": f"{TRANSCRIPTS_SUBDIR}/{stem}-episode.json",
              "captions": f"{TRANSCRIPTS_SUBDIR}/{stem}-captions.vtt",
@@ -581,7 +580,7 @@ def main() -> None:
     def episode_args(p):
         p.add_argument("show", help="show slug (see `shows`), or '-' when EPISODE is a YouTube URL")
         p.add_argument("episode", help="latest | latest-N | number | YouTube URL | words from the title")
-        p.add_argument("--out", help="output directory (default: <project>/output/<show>)")
+        p.add_argument("--out", help="output directory (default: ./output/<show>, or $PODCAST_DIGEST_OUT/<show>)")
         p.add_argument("--force", action="store_true", help="re-download even if cached")
         p.add_argument("--recent", action="store_true", help="if title words match several episodes, take the newest")
         p.add_argument("--max-videos", type=int, default=30, help="recent channel videos to scan for a match")
@@ -601,8 +600,16 @@ def main() -> None:
     p.set_defaults(fn=cmd_summarize)
 
     args = ap.parse_args()
-    registry = yaml.safe_load(REGISTRY.read_text()) if REGISTRY.exists() else {}
-    args.fn(args, registry)
+    args.fn(args, load_registry())
+
+
+def load_registry() -> dict:
+    """Built-in shows, overlaid with the user's ~/.config/podcast-digest/podcasts.yaml (same format)."""
+    registry = {}
+    for path in (REGISTRY, USER_REGISTRY):
+        if path.exists():
+            registry.update(yaml.safe_load(path.read_text(encoding="utf-8")) or {})
+    return registry
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
 Podcast episode in, clean transcript and structured summary out. One command, from the terminal, by hand or driven by any AI agent.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](tools/podcast/podcast.py)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
 ![demo](docs/demo.gif)
@@ -13,14 +13,14 @@ The registered shows, the episodes on the feed, a cached fetch, and the summary 
 ## Quick start
 
 ```bash
-git clone https://github.com/garyzava/podcast-digest && cd podcast-digest
-bin/podcast episodes moonshots --limit 5 --format text   # what's on the feed
-bin/podcast fetch moonshots latest                       # transcript + metadata -> output/moonshots/
-bin/podcast summarize moonshots latest                   # summary via claude CLI or OPENAI_API_KEY
-bin/podcast summarize moonshots latest --print-prompt    # or: paste the prompt into any model
+uv tool install git+https://github.com/garyzava/podcast-digest   # or: pipx install git+https://github.com/garyzava/podcast-digest
+podcast episodes moonshots --limit 5 --format text   # what's on the feed
+podcast fetch moonshots latest                       # transcript + metadata -> ./output/moonshots/
+podcast summarize moonshots latest                   # summary via claude CLI or OPENAI_API_KEY
+podcast summarize moonshots latest --print-prompt    # or: paste the prompt into any model
 ```
 
-Needs [`uv`](https://docs.astral.sh/uv/) and network access. `uv` fetches Python 3.11 and the two dependencies (`yt-dlp`, `pyyaml`) on first run; nothing is installed globally.
+Needs [`uv`](https://docs.astral.sh/uv/) (or pipx) and network access; `uv` brings Python 3.11 and the two dependencies (`yt-dlp`, `pyyaml`) with it. To try it without installing: `uvx --from git+https://github.com/garyzava/podcast-digest podcast shows`. Inside a clone, `bin/podcast` runs the same CLI from the checkout.
 
 ## Why this one
 
@@ -42,19 +42,19 @@ Needs [`uv`](https://docs.astral.sh/uv/) and network access. `uv` fetches Python
 ## Usage
 
 ```bash
-bin/podcast shows                                        # registered shows
-bin/podcast episodes moonshots --limit 10 --format text  # browse recent episodes
-bin/podcast fetch moonshots latest                       # newest episode
-bin/podcast fetch moonshots latest-1                     # second newest
-bin/podcast fetch moonshots 304                          # by episode number ("#304", "ep304" also work)
-bin/podcast fetch moonshots "mercury into gold"          # words from the title
-bin/podcast fetch moonshots chamath --recent             # several matches: take the newest
-bin/podcast fetch moonshots https://www.youtube.com/watch?v=ID   # by URL; metadata filled from the feed
-bin/podcast fetch - https://www.youtube.com/watch?v=ID    # URL only; show auto-detected from the channel
-bin/podcast transcript moonshots 304                     # print the transcript to stdout
-bin/podcast summarize moonshots 304                      # fetch + summary
-bin/podcast summarize moonshots 304 --print-prompt       # emit the summary prompt instead
-bin/podcast --help
+podcast shows                                        # registered shows
+podcast episodes moonshots --limit 10 --format text  # browse recent episodes
+podcast fetch moonshots latest                       # newest episode
+podcast fetch moonshots latest-1                     # second newest
+podcast fetch moonshots 304                          # by episode number ("#304", "ep304" also work)
+podcast fetch moonshots "mercury into gold"          # words from the title
+podcast fetch moonshots chamath --recent             # several matches: take the newest
+podcast fetch moonshots https://www.youtube.com/watch?v=ID   # by URL; metadata filled from the feed
+podcast fetch - https://www.youtube.com/watch?v=ID    # URL only; show auto-detected from the channel
+podcast transcript moonshots 304                     # print the transcript to stdout
+podcast summarize moonshots 304                      # fetch + summary
+podcast summarize moonshots 304 --print-prompt       # emit the summary prompt instead
+podcast --help
 ```
 
 `fetch`, `transcript` and `summarize` share the same options: `--out DIR`, `--force` (re-download), `--recent`, `--max-videos N`, `--langs en-orig,en`.
@@ -67,11 +67,11 @@ bin/podcast --help
 | `--engine openai` | `OPENAI_API_KEY`, plus `--model` or `OPENAI_MODEL` | `OPENAI_BASE_URL` for compatible APIs |
 | `--print-prompt` | nothing | prompt on stdout; paste it into any model |
 
-Default: `claude` if the CLI is installed, else `openai` if the key is set. Every summary follows [`tools/podcast/SUMMARY_TEMPLATE.md`](tools/podcast/SUMMARY_TEMPLATE.md): TL;DR, chapter by chapter with `[mm:ss]` timestamps, key takeaways, claims and numbers, names, open questions.
+Default: `claude` if the CLI is installed, else `openai` if the key is set. Every summary follows [`src/podcast_digest/SUMMARY_TEMPLATE.md`](src/podcast_digest/SUMMARY_TEMPLATE.md): TL;DR, chapter by chapter with `[mm:ss]` timestamps, key takeaways, claims and numbers, names, open questions.
 
 ## Output
 
-Files land in `output/<show>/`, named `<show>-ep<NNN>-<YYYY-MM-DD>-*`. Summaries sit at the top; the bulky source files go in `transcripts/`:
+Files land in `./output/<show>/` under the current directory (change it with `--out DIR` or `PODCAST_DIGEST_OUT`), named `<show>-ep<NNN>-<YYYY-MM-DD>-*`. Summaries sit at the top; the bulky source files go in `transcripts/`:
 
 | File | Content |
 |---|---|
@@ -86,7 +86,7 @@ YouTube auto-captions are the source when the channel uploads no manual captions
 
 ## Adding a show
 
-Append a block to `tools/podcast/podcasts.yaml`:
+Add a block to `~/.config/podcast-digest/podcasts.yaml` (create the file; same format as the built-in [`src/podcast_digest/podcasts.yaml`](src/podcast_digest/podcasts.yaml), and your entries win on the same slug):
 
 ```yaml
 myshow:
@@ -104,12 +104,12 @@ Agents of any model: read [`AGENTS.md`](AGENTS.md) for the commands, exit codes 
 ## Layout
 
 ```
-bin/podcast                        CLI wrapper (runs the script with uv)
-tools/podcast/podcast.py           the CLI
-tools/podcast/podcasts.yaml        show registry
-tools/podcast/SUMMARY_TEMPLATE.md  the summary format every summary follows
-output/<show>/                     summaries at the top, transcripts/ below (git-ignored)
-docs/                              demo recording and its VHS tape
+src/podcast_digest/cli.py               the CLI (`podcast` entry point in pyproject.toml)
+src/podcast_digest/podcasts.yaml        built-in show registry
+src/podcast_digest/SUMMARY_TEMPLATE.md  the summary format every summary follows
+bin/podcast                             in-repo shim: runs the CLI from the checkout with uv
+output/<show>/                          summaries at the top, transcripts/ below (git-ignored)
+docs/                                   demo recording and its VHS tape
 ```
 
 ## License

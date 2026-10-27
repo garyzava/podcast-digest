@@ -5,3 +5,6 @@ __pycache__/
 *.pyc
 .venv/
 .DS_Store
+# build and install leftovers
+dist/
+*.egg-info/

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# CLI wrapper: podcast <shows|episodes|fetch|transcript|summarize> ...  (see `podcast --help`)
+# In-repo shim: runs the `podcast` CLI from this checkout without installing it.
+# Installed users run `podcast ...` directly (see README). Usage: bin/podcast --help
 set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export PYTHONWARNINGS="${PYTHONWARNINGS:-ignore}"   # hide yt-dlp's Python-version deprecation warnings; harmless
-exec uv run --quiet "$DIR/tools/podcast/podcast.py" "$@"
+export PYTHONWARNINGS="${PYTHONWARNINGS:-ignore}"           # hide yt-dlp's Python-version deprecation warnings; harmless
+export PODCAST_DIGEST_OUT="${PODCAST_DIGEST_OUT:-$DIR/output}"  # keep output under the repo wherever you run it from
+exec uv run --quiet --project "$DIR" podcast "$@"

@@ -1,5 +1,5 @@
 # Terminal demo for the README. Render from the repo root: vhs docs/demo.tape
-# Needs vhs, ttyd and ffmpeg on PATH, a warm uv env (run `bin/podcast shows` once first)
+# Needs vhs, ttyd and ffmpeg on PATH, the CLI installed (`uv tool install .`)
 # and episode 305 already fetched so `fetch` is a cache hit.
 
 Output docs/demo.gif
@@ -21,12 +21,12 @@ Enter
 Show
 
 Sleep 500ms
-Type "bin/podcast shows"
+Type "podcast shows"
 Sleep 300ms
 Enter
 Sleep 2s
 
-Type "bin/podcast episodes moonshots --limit 5 --format text"
+Type "podcast episodes moonshots --limit 5 --format text"
 Sleep 300ms
 Enter
 Sleep 5s
@@ -36,7 +36,7 @@ Type "clear"
 Enter
 Show
 
-Type "bin/podcast fetch moonshots 305 2>/dev/null | jq '{episode_number, title, word_count, chapter_count, cached, files}'"
+Type "podcast fetch moonshots 305 2>/dev/null | jq '{episode_number, title, word_count, chapter_count, cached, files}'"
 Sleep 300ms
 Enter
 Sleep 7s

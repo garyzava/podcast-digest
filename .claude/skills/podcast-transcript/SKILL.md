@@ -5,7 +5,7 @@ description: Fetch the full transcript of a podcast episode (from YouTube captio
 
 # Podcast transcript + summary
 
-The tool lives in `tools/podcast/` (plain repo folder, usable by any agent); this skill only tells you how to drive it. Full usage: `README.md` and `AGENTS.md` at the project root.
+The tool lives in `src/podcast_digest/` (plain Python package, usable by any agent); this skill only tells you how to drive it. Full usage: `README.md` and `AGENTS.md` at the project root.
 
 ## 1. Fetch the transcript
 
@@ -31,10 +31,10 @@ Caption quality: YouTube auto-captions carry no speaker names (paragraph breaks 
 
 When you are the model working in-session, write the summary yourself (calling `summarize` spawns a second Claude run and costs the tokens again). Read `transcripts/<stem>-transcript.md` fully, in chunks of ~600 lines for 2-hour episodes. Use the YouTube chapters as the spine; they are the host's own segmentation and keep the summary navigable with timestamps. If you must run it unattended, `summarize --engine openai` works outside Claude Code when `OPENAI_API_KEY` and `OPENAI_MODEL` are set.
 
-Follow `tools/podcast/SUMMARY_TEMPLATE.md` exactly (same headings, same order) so summaries across episodes are comparable, and save to `output/<show>/<stem>-summary.md`. Plain prose, no hype, paraphrase rather than quote since captions are not verbatim-reliable, keep numbers and names. Finish by telling the user the summary path, the transcript path and the word count.
+Follow `src/podcast_digest/SUMMARY_TEMPLATE.md` exactly (same headings, same order) so summaries across episodes are comparable, and save to `output/<show>/<stem>-summary.md`. Plain prose, no hype, paraphrase rather than quote since captions are not verbatim-reliable, keep numbers and names. Finish by telling the user the summary path, the transcript path and the word count.
 
 ## Adding a show
 
-Append to `tools/podcast/podcasts.yaml`; find the feed with
+Append to `src/podcast_digest/podcasts.yaml` (or `~/.config/podcast-digest/podcasts.yaml` for a local-only show); find the feed with
 `curl -s "https://itunes.apple.com/search?term=<show name>&media=podcast&limit=5" | jq '.results[] | {collectionName, feedUrl}'`
 and use the channel's `/videos` URL. `episode_regex` needs one capture group (`#\s*(\d+)` covers "EP #304", "| #303").
