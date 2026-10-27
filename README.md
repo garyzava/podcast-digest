@@ -16,7 +16,7 @@ The registered shows, the episodes on the feed, a cached fetch, and the summary 
 uv tool install git+https://github.com/garyzava/podcast-digest   # or: pipx install git+https://github.com/garyzava/podcast-digest
 podcast episodes moonshots --limit 5 --format text   # what's on the feed
 podcast fetch moonshots latest                       # transcript + metadata -> ./output/moonshots/
-podcast summarize moonshots latest                   # summary via claude CLI or OPENAI_API_KEY
+podcast summarize moonshots latest                   # summary via OPENAI_API_KEY or any CLI
 podcast summarize moonshots latest --print-prompt    # or: paste the prompt into any model
 ```
 
@@ -26,7 +26,7 @@ Needs [`uv`](https://docs.astral.sh/uv/) (or pipx) and network access; `uv` brin
 
 - **Feed-matched episodes.** Episodes come from the show's RSS feed, the same list Apple Podcasts shows, and are matched to the YouTube upload by `#NNN`, then by fuzzy title. `latest`, `304`, a YouTube URL or words from the title all resolve to the same cached files.
 - **Agent-friendly.** JSON on stdout, logs on stderr, exit codes `0/1/2/3`, a `candidates` list when title words are ambiguous, and absolute `paths` in every result.
-- **Model-agnostic summaries.** Use the `claude` CLI, the OpenAI API, or `--print-prompt` to feed any model. Every summary follows one template, so episodes are comparable.
+- **Model-agnostic summaries.** Any OpenAI-compatible API, any CLI that takes a prompt on stdin, or `--print-prompt` to paste into whatever you use. Every summary follows one template, so episodes are comparable.
 - **Copyright-safe layout.** Transcripts and raw captions go to a git-ignored `transcripts/` folder. Only your summaries are committable.
 
 ## Example summary
@@ -63,11 +63,11 @@ podcast --help
 
 | Engine | Needs | Notes |
 |---|---|---|
-| `--engine claude` | the [`claude`](https://docs.claude.com/en/docs/claude-code) CLI, logged in | no API key; `--model` optional |
-| `--engine openai` | `OPENAI_API_KEY`, plus `--model` or `OPENAI_MODEL` | `OPENAI_BASE_URL` for compatible APIs |
-| `--print-prompt` | nothing | prompt on stdout; paste it into any model |
+| `--engine openai` | `OPENAI_API_KEY`, plus `--model` or `OPENAI_MODEL` | any OpenAI-compatible endpoint via `OPENAI_BASE_URL`, local servers included |
+| `--engine cmd` | `PODCAST_SUMMARY_CMD` | any CLI that reads the prompt on stdin and prints the summary, e.g. `ollama run llama3` |
+| `--print-prompt` | nothing | prompt on stdout; paste it into any model or agent |
 
-Default: `claude` if the CLI is installed, else `openai` if the key is set. Every summary follows [`src/podcast_digest/SUMMARY_TEMPLATE.md`](src/podcast_digest/SUMMARY_TEMPLATE.md): TL;DR, chapter by chapter with `[mm:ss]` timestamps, key takeaways, claims and numbers, names, open questions.
+Default: `openai` if the key is set, else `cmd` if the command is set. Every summary follows [`src/podcast_digest/SUMMARY_TEMPLATE.md`](src/podcast_digest/SUMMARY_TEMPLATE.md): TL;DR, chapter by chapter with `[mm:ss]` timestamps, key takeaways, claims and numbers, names, open questions.
 
 ## Output
 
@@ -99,7 +99,7 @@ myshow:
 
 ## For AI agents
 
-Agents of any model: read [`AGENTS.md`](AGENTS.md) for the commands, exit codes and how to write the summary yourself. Claude Code users get the same via the `podcast-transcript` skill in `.claude/skills/`.
+Agents of any model: read [`AGENTS.md`](AGENTS.md) for the commands, exit codes and how to write the summary yourself.
 
 ## Layout
 

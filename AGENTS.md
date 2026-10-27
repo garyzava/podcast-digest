@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Guidance for AI agents (Claude Code, Codex, Cursor, OpenClaw, etc.) working in this repository.
+Guidance for AI coding agents (Codex, Cursor, Copilot, OpenClaw, etc.) working in this repository.
 
 ## What is here
 
@@ -8,8 +8,7 @@ A CLI, `bin/podcast`, that turns a podcast episode into a transcript and a summa
 
 ## Where things are
 
-- `src/podcast_digest/`: the CLI (`cli.py`), built-in show registry (`podcasts.yaml`) and `SUMMARY_TEMPLATE.md`. Plain Python package, no Claude dependency.
-- `.claude/skills/podcast-transcript/SKILL.md`: Claude Code skill that points at the tool. Other agents can ignore it.
+- `src/podcast_digest/`: the CLI (`cli.py`), built-in show registry (`podcasts.yaml`) and `SUMMARY_TEMPLATE.md`. Plain Python package, no agent-specific dependency.
 - `output/<show>/`: summaries at the top, `transcripts/` below.
 
 ## How to call it
@@ -21,7 +20,7 @@ bin/podcast shows                                   # discover show slugs
 bin/podcast episodes <show> --limit 20              # discover episodes (index, number, date, title)
 bin/podcast fetch <show> <episode>                  # transcript + metadata; JSON includes absolute "paths"
 bin/podcast transcript <show> <episode>             # transcript markdown on stdout
-bin/podcast summarize <show> <episode>              # summary via claude CLI or OpenAI API; JSON with paths
+bin/podcast summarize <show> <episode>              # summary via an API or any CLI; JSON with paths
 bin/podcast summarize <show> <episode> --print-prompt   # summary prompt on stdout, for any model
 ```
 
@@ -38,7 +37,7 @@ bin/podcast summarize <show> <episode> --print-prompt   # summary prompt on stdo
 
 ## Writing the summary yourself
 
-The standard flow for any agent, whatever model it runs on, is: `fetch` (or `transcript`), read the transcript, write the summary. The `summarize` subcommand is optional: `--engine claude` needs the `claude` CLI logged in, `--engine openai` needs `OPENAI_API_KEY` plus `--model` or `OPENAI_MODEL` (`OPENAI_BASE_URL` for compatible APIs), and `--print-prompt` gives you the prompt for any other model. If none applies, write the summary yourself. No API key is needed to fetch transcripts. Follow `src/podcast_digest/SUMMARY_TEMPLATE.md` exactly and save it as `output/<show>/<stem>-summary.md`, where `stem` is in the fetch JSON. Transcripts, raw captions and episode metadata live in `output/<show>/transcripts/`; the fetch JSON's `paths` has the absolute locations. Keep the headings exactly; summaries across episodes are meant to be comparable.
+The standard flow for any agent, whatever model it runs on, is: `fetch` (or `transcript`), read the transcript, write the summary. The `summarize` subcommand is optional: `--engine openai` needs `OPENAI_API_KEY` plus `--model` or `OPENAI_MODEL` (`OPENAI_BASE_URL` for compatible APIs), `--engine cmd` pipes the prompt to whatever CLI `PODCAST_SUMMARY_CMD` names, and `--print-prompt` gives you the prompt for any other model. If none applies, write the summary yourself. No API key is needed to fetch transcripts. Follow `src/podcast_digest/SUMMARY_TEMPLATE.md` exactly and save it as `output/<show>/<stem>-summary.md`, where `stem` is in the fetch JSON. Transcripts, raw captions and episode metadata live in `output/<show>/transcripts/`; the fetch JSON's `paths` has the absolute locations. Keep the headings exactly; summaries across episodes are meant to be comparable.
 
 Transcripts are large (a 2-hour episode is 20k to 27k words). Read them in chunks. Chapter headers (`## Title [mm:ss]`) come from the YouTube chapters and are the intended spine of the summary.
 

@@ -5,14 +5,15 @@ Subcommands (all print JSON to stdout unless noted; logs go to stderr):
   episodes SHOW [--limit N]     list recent episodes (index, number, date, title)
   fetch SHOW EPISODE            download captions, write transcript + metadata; cached per episode
   transcript SHOW EPISODE       same as fetch, but prints the transcript markdown to stdout
-  summarize SHOW EPISODE        fetch, then write the summary with claude CLI or the OpenAI API
+  summarize SHOW EPISODE        fetch, then write the summary with an OpenAI-compatible API or any CLI
 
 EPISODE can be: latest | latest-N | an episode number (304, #304, ep304) | a YouTube URL |
 free text matched against episode titles ("chamath", "mercury into gold").
 
-Summary engines: --engine claude uses the `claude` CLI (Claude Code login, no key needed);
---engine openai uses OPENAI_API_KEY (+ OPENAI_MODEL or --model); --print-prompt emits the prompt for any model.
-Default engine: claude if the CLI is installed, else openai if OPENAI_API_KEY is set.
+Summary engines: --engine openai calls an OpenAI-compatible chat API (OPENAI_API_KEY, OPENAI_MODEL or --model,
+OPENAI_BASE_URL for other providers or local servers); --engine cmd pipes the prompt on stdin to $PODCAST_SUMMARY_CMD,
+any model or agent CLI whose stdout is the summary; --print-prompt emits the prompt so you can paste it anywhere.
+Default engine: openai if OPENAI_API_KEY is set, else cmd if PODCAST_SUMMARY_CMD is set.
 
 Output goes to ./output/<show>/ (or $PODCAST_DIGEST_OUT/<show>/, or --out DIR).
 Shows: the built-in podcasts.yaml plus ~/.config/podcast-digest/podcasts.yaml, same format, user entries win.
@@ -501,18 +502,17 @@ def cmd_transcript(args, registry):
 def run_summary_engine(prompt: str, engine: str | None, model: str | None, words: int) -> str:
     import subprocess
     if engine is None:
-        engine = "claude" if shutil.which("claude") else "openai" if os.environ.get("OPENAI_API_KEY") else None
+        engine = "openai" if os.environ.get("OPENAI_API_KEY") else "cmd" if os.environ.get("PODCAST_SUMMARY_CMD") else None
     if engine is None:
-        die("no summary engine: install the `claude` CLI, set OPENAI_API_KEY, or use --print-prompt")
-    if engine == "claude":
-        if not shutil.which("claude"):
-            die("`claude` CLI not found; use --engine openai or --print-prompt")
-        cmd = ["claude", "-p", "--output-format", "text"] + (["--model", model] if model else [])
-        log(f"running {' '.join(cmd)} on {words:,} words (takes a few minutes)")
-        env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
-        res = subprocess.run(cmd, input=prompt, capture_output=True, text=True, env=env)
+        die("no summary engine: set OPENAI_API_KEY (--engine openai), set PODCAST_SUMMARY_CMD (--engine cmd), or use --print-prompt")
+    if engine == "cmd":
+        cmd = os.environ.get("PODCAST_SUMMARY_CMD")
+        if not cmd:
+            die("PODCAST_SUMMARY_CMD is not set: a shell command that reads the prompt on stdin and prints the summary")
+        log(f"running `{cmd}` on {words:,} words (takes a few minutes)")
+        res = subprocess.run(cmd, shell=True, input=prompt, capture_output=True, text=True)
         if res.returncode != 0 or not res.stdout.strip():
-            die(f"claude failed (exit {res.returncode}): {res.stderr.strip()[:500]}")
+            die(f"summary command failed (exit {res.returncode}): {res.stderr.strip()[:500]}")
         return res.stdout
     if engine == "openai":
         key = os.environ.get("OPENAI_API_KEY")
@@ -592,10 +592,10 @@ def main() -> None:
     p = sub.add_parser("transcript", help="fetch if needed, then print the transcript markdown")
     episode_args(p); p.set_defaults(fn=cmd_transcript)
 
-    p = sub.add_parser("summarize", help="fetch if needed, then write the summary (claude CLI or OpenAI API, see --engine)")
+    p = sub.add_parser("summarize", help="fetch if needed, then write the summary (OpenAI-compatible API or any CLI, see --engine)")
     episode_args(p)
-    p.add_argument("--engine", choices=["claude", "openai"], help="summary engine (default: claude CLI if installed, else openai)")
-    p.add_argument("--model", help="model for the engine (claude: optional; openai: required, or set OPENAI_MODEL)")
+    p.add_argument("--engine", choices=["openai", "cmd"], help="summary engine (default: openai if OPENAI_API_KEY is set, else cmd if PODCAST_SUMMARY_CMD is set)")
+    p.add_argument("--model", help="model for --engine openai (or set OPENAI_MODEL)")
     p.add_argument("--print-prompt", action="store_true", help="print the summary prompt instead of running an engine (use it with any model)")
     p.set_defaults(fn=cmd_summarize)
 
