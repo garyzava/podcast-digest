@@ -1,0 +1,7 @@
+# raw captions and full transcripts are the podcast's copyrighted content: never publish them
+output/**/transcripts/
+# local junk
+__pycache__/
+*.pyc
+.venv/
+.DS_Store

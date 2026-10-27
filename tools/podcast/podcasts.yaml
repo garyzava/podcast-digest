@@ -1,0 +1,12 @@
+# Known shows. Key = short slug passed as the SHOW argument and used as the output sub-folder name.
+# feed:    podcast RSS feed (find it via https://itunes.apple.com/search?term=<name>&media=podcast -> feedUrl)
+# youtube: the channel's /videos page (or a playlist URL) where full episodes are uploaded
+# apple:   optional, only used for the links in the transcript header
+# episode_regex: regex with one capture group that extracts the episode number from a title
+
+moonshots:
+  name: Moonshots with Peter Diamandis
+  feed: https://feeds.megaphone.fm/DVVTS2890392624
+  youtube: https://www.youtube.com/@peterdiamandis/videos
+  apple: https://podcasts.apple.com/us/podcast/moonshots-with-peter-diamandis/id1648228034
+  episode_regex: '#\s*(\d+)'
